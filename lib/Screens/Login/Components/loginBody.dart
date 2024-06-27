@@ -1,4 +1,5 @@
 import 'package:authentication_task/Screens/Register/register.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../components/buttons.dart';
@@ -166,17 +167,29 @@ class _LoginBodyState extends State<LoginBody> {
                         await displaySnackBar("loading");
                         // TODO: add your code to log in by email & password
                         try {
-                          await FirebaseAuth.instance
-                              .signInWithEmailAndPassword(
-                                  email: emailController,
-                                  password: passwordController);
+                          var query = await FirebaseFirestore.instance
+                              .collection('users')
+                              .where('userEmail', isEqualTo: emailController)
+                              .limit(1);
 
-                          Navigator.pushNamed(context, HomePage.routeName);
+                          var snapshot = await query.snapshots();
+                          Future<QuerySnapshot> userDoc = snapshot.first;
+                          var check = await userDoc;
+
+                          if (check.docs.isEmpty) {
+                            Navigator.pushNamed(context, Register.routeName);
+                          } else {
+                            await FirebaseAuth.instance
+                                .signInWithEmailAndPassword(
+                                    email: emailController,
+                                    password: passwordController);
+                            Navigator.pushNamed(context, HomePage.routeName);
+
+                          }
 
                         } catch (e) {
                           displaySnackBar("Something went wrong");
                         }
-
                       }
                     }),
 ///////////////////////////////////////////////////////////////////////////////////
@@ -212,7 +225,7 @@ class _LoginBodyState extends State<LoginBody> {
   Future<UserCredential?> signInWithEmail(
       String email, String password, BuildContext context) async {
     try {
-       await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -221,6 +234,5 @@ class _LoginBodyState extends State<LoginBody> {
     }
 
     return null;
-
   }
 }
